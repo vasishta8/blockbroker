@@ -2,22 +2,27 @@ import requests
 import os
 import json
 from dotenv import load_dotenv
+from coinbase.wallet.client import Client
 
 load_dotenv()
-COINGECKO_API_KEY = os.getenv('COINGECKO_API_KEY')
+COINBASE_API_KEY = os.getenv('COINBASE_API_KEY')
+COINBASE_API_SECRET = os.getenv('COINBASE_API_SECRET')
+client = Client(COINBASE_API_KEY, COINBASE_API_SECRET)
 
 
-def get_price(coin_id: str):
-    url = f'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids={coin_id}'
+def get_spot_price(coin: str):
+    price = client.get_spot_price(currency_pair=f'{coin}-USD')
+    print(price)
+    return 200, price["amount"], price["base"], price["currency"]
 
-    headers = {
-        "accept": "application/json",
-        "x-cg-pro-api-key": COINGECKO_API_KEY
-    }
 
-    response = requests.get(url, headers=headers)
-    response_dict = json.loads(response.text)
-    try:
-        return 200, response_dict[coin_id]["usd"]
-    except KeyError as e:
-        return 404, "The coin you requested was not found!"
+def get_buy_price(coin: str):
+    price = client.get_buy_price(currency_pair=f'{coin}-USD')
+    print(price)
+    return 200, price["amount"], price["base"], price["currency"]
+
+
+def get_sell_price(coin: str):
+    price = client.get_sell_price(currency_pair=f'{coin}-USD')
+    print(price)
+    return 200, price["amount"], price["base"], price["currency"]

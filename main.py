@@ -1,4 +1,5 @@
-import discord, os
+import discord
+import os
 from dotenv import load_dotenv
 from commands import setup_commands
 from crypto_functions import *
@@ -12,10 +13,12 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(client)
 
-@client.event 
+
+@client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=DISCORD_GUILD_ID))
-    print('AngoBot is ready and logged in as', client.user)
+    print('BlockBroker is ready and logged in as', client.user)
+
 
 @client.event
 async def on_message(message):
