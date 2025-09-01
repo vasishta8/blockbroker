@@ -19,13 +19,6 @@ async def on_ready():
     await tree.sync(guild=discord.Object(id=DISCORD_GUILD_ID))
     print('BlockBroker is ready and logged in as', client.user)
 
-
-@client.event
-async def on_message(message):
-    print(f"Received message: {message.content} from {message.author}")
-    if (message.author == client.user):
-        return
-
 setup_commands(tree, DISCORD_GUILD_ID)
 
 client.run(DISCORD_TOKEN)
