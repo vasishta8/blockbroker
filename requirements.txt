@@ -13,3 +13,5 @@ langchain-google-genai
 langchain
 yfinance
 tavily-python
+mplfinance
+matplotlib
