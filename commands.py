@@ -1,5 +1,6 @@
 import discord
 from functions.price_check_functions import *
+from functions.analysis_functions import *
 
 
 def setup_commands(tree: discord.app_commands.CommandTree, guild_id: int):
@@ -31,3 +32,15 @@ def setup_commands(tree: discord.app_commands.CommandTree, guild_id: int):
             await interaction.response.send_message(f'Sell price of {coin} is: {currency} {amount}')
         if (status == 404):
             await interaction.response.send_message(f'Unable to fetch the price of {coin} in {currency}.')
+
+    @tree.command(name="technical_analysis", description="Suggests you whether to buy, sell or hold the requested coin based on quantitative factors.", guild=discord.Object(guild_id))
+    async def analysis_command(interaction: discord.Interaction, coin: str):
+        await interaction.response.defer()
+        status, verdict = await technical_analysis(coin)
+        print(status, verdict)
+        if (status == 200):
+            recommendation = verdict["recommendation"]
+            justification = verdict["justification"]
+            await interaction.followup.send(f'The technical analysis suggests you to {recommendation} on {coin}. Justication: {justification}')
+        if (status == 404):
+            await interaction.followup.send(f'{verdict} {coin}.')

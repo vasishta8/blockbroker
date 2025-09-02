@@ -3,3 +3,11 @@ requests
 python-dotenv
 cdp-sdk
 coinbase
+ccxt
+TA-Lib
+pandas
+google-genai
+tabulate
+pydantic
+langchain-google-genai
+langchain
