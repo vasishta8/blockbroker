@@ -23,7 +23,7 @@ class quantitativeAnalysisModel(BaseModel):
 async def quantitative_analysis(coin: str):
     try:
         bars = exchange.fetch_ohlcv(
-            f'{coin.upper()}/USDT', timeframe='1d', limit=180)
+            f'{coin}/USDT', timeframe='1d', limit=180)
     except Exception as e:
         return 404, "Unable to find the requested coin"
 
