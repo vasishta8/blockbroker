@@ -1,4 +1,4 @@
-import ccxt
+import ccxt.async_support as ccxt
 import pandas as pd
 import talib
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -26,7 +26,7 @@ class analysisModel(BaseModel):
 
 async def quantitative_analysis(coin: str):
     try:
-        bars = exchange.fetch_ohlcv(
+        bars = await exchange.fetch_ohlcv(
             f'{coin}/USDT', timeframe='1d', limit=180)
     except Exception as e:
         return 404, "Unable to find the requested coin"
@@ -101,7 +101,7 @@ async def quantitative_analysis(coin: str):
     prompt_text = prompt.to_string()
 
     analysis_chain = llm | output_parser
-    result = analysis_chain.invoke(prompt_text)
+    result = await analysis_chain.ainvoke(prompt_text)
     print(result.model_dump())
     return 200, result.model_dump()
 
@@ -147,7 +147,7 @@ async def qualitative_analysis(coin: str):
     prompt_text = prompt.to_string()
 
     analysis_chain = llm | output_parser
-    result = analysis_chain.invoke(prompt_text)
+    result = await analysis_chain.ainvoke(prompt_text)
     print(result.model_dump())
     return 200, result.model_dump()
 
@@ -200,6 +200,6 @@ async def integrated_analysis(coin: str):
     prompt_text = prompt.to_string()
 
     analysis_chain = llm | output_parser
-    result = analysis_chain.invoke(prompt_text)
+    result = await analysis_chain.ainvoke(prompt_text)
     print(result.model_dump())
     return 200, result.model_dump()

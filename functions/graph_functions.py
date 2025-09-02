@@ -1,7 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
-import ccxt
+import ccxt.async_support as ccxt
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import pandas as pd
@@ -25,7 +25,7 @@ async def graph_analysis(coin: str, period: str = "1M"):
         if period == "YTD":
             start_of_year = pd.Timestamp.now().normalize().replace(month=1, day=1)
             since = int(start_of_year.timestamp() * 1000)
-            bars = exchange.fetch_ohlcv(
+            bars = await exchange.fetch_ohlcv(
                 f'{coin}/USDT', timeframe='1d', since=since)
             df = pd.DataFrame(
                 bars, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -57,7 +57,7 @@ async def graph_analysis(coin: str, period: str = "1M"):
         figcolor="black"
     )
 
-    mpf.plot(
+    await mpf.plot(
         df,
         type="candle",
         style=dark_style,
