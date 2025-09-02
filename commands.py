@@ -33,10 +33,10 @@ def setup_commands(tree: discord.app_commands.CommandTree, guild_id: int):
         if (status == 404):
             await interaction.response.send_message(f'Unable to fetch the price of {coin} in {currency}.')
 
-    @tree.command(name="technical_analysis", description="Suggests you whether to buy, sell or hold the requested coin based on quantitative factors.", guild=discord.Object(guild_id))
+    @tree.command(name="quantitative_analysis", description="Suggests you whether to buy, sell or hold the requested coin based on quantitative factors.", guild=discord.Object(guild_id))
     async def analysis_command(interaction: discord.Interaction, coin: str):
         await interaction.response.defer()
-        status, verdict = await technical_analysis(coin)
+        status, verdict = await quantitative_analysis(coin)
         print(status, verdict)
         if (status == 200):
             recommendation = verdict["recommendation"]

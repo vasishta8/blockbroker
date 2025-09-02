@@ -7,21 +7,23 @@ from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 import os
 from dotenv import load_dotenv
+import yfinance as yf
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 exchange = ccxt.binance()
 
 
-class TechnicalAnalysisModel(BaseModel):
+class quantitativeAnalysisModel(BaseModel):
     recommendation: str = Field(..., description="One of BUY, SELL, or HOLD")
     justification: str = Field(...,
                                description="Concise explanation of the analysis")
 
 
-async def technical_analysis(coin: str):
+async def quantitative_analysis(coin: str):
     try:
-        bars = exchange.fetch_ohlcv(f'{coin}/USDT', timeframe='1d', limit=180)
+        bars = exchange.fetch_ohlcv(
+            f'{coin.upper()}/USDT', timeframe='1d', limit=180)
     except Exception as e:
         return 404, "Unable to find the requested coin"
 
@@ -73,7 +75,7 @@ async def technical_analysis(coin: str):
 
         Based on the above, provide your **final recommendation**: BUY, SELL, or HOLD.
 
-        Also provide a **concise justification paragraph** explaining how each indicator influenced your decision. Reference insights from the SMA crossover, RSI, Bollinger Bands, MACD, and volume if applicable.
+        Also provide a **concise justification paragraph** explaining how each indicator influenced your decision. Reference insights from the SMA crossover, RSI, Bollinger Bands, MACD, and volume if applicable. Mention the numeric values **always**.
 
         Return the result in JSON format with keys "recommendation" and "justification" only.
 
@@ -89,12 +91,18 @@ async def technical_analysis(coin: str):
 
     prompt = prompt_template.format_prompt(dataframe_context=dataframe_context)
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash", api_key=GEMINI_API_KEY, temperature=0)
+        model="gemini-2.5-pro", api_key=GEMINI_API_KEY, temperature=0)
     output_parser = PydanticOutputParser(
-        pydantic_object=TechnicalAnalysisModel)
+        pydantic_object=quantitativeAnalysisModel)
     prompt_text = prompt.to_string()
 
     analysis_chain = llm | output_parser
     result = analysis_chain.invoke(prompt_text)
     print(result.dict())
     return 200, result.dict()
+
+
+async def qualitative_analysis(coin: str):
+    news = yf.Search(f"{coin.upper()}-USD", news_count=10).news
+
+    return

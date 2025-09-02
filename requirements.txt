@@ -11,3 +11,4 @@ tabulate
 pydantic
 langchain-google-genai
 langchain
+yfinance
