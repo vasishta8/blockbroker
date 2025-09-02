@@ -1,8 +1,7 @@
 import discord
 import os
 from dotenv import load_dotenv
-from commands import setup_commands
-from functions.price_check_functions import *
+from commands.setup_commands import setup_commands
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
@@ -12,7 +11,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(client)
-
 
 @client.event
 async def on_ready():

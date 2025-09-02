@@ -108,20 +108,75 @@ async def quantitative_analysis(coin: str):
 
 async def qualitative_analysis(coin: str):
     try:
-        news = yf.Search(f"{coin.upper()}-USD", news_count=10).news
+        news = yf.Search(f"{coin.upper()}-USD").news
+        print(news)
+        news_urls = [news_item['link'] for news_item in news]
+        if (len(news_urls) == 0):
+            raise Exception()
+        news_data = "\n".join([result["raw_content"]
+                               for result in tavilyClient.extract(news_urls)["results"]])
     except Exception as e:
         return 404, "Unable to find the requested coin"
-    news_urls = [news_item['link'] for news_item in news]
-    news_data = "\n".join([result["raw_content"]
-                          for result in tavilyClient.extract(news_urls)["results"]])
     prompt_template = ChatPromptTemplate.from_template("""
-    You are a senior financial analyst specializing in cryptocurrency markets. Given the following qualitative news article content about cryptocurrency markets, analyze the data and provide a clear trading recommendation.
+        You are a senior financial analyst specializing in cryptocurrency markets. Given the following qualitative news article content about cryptocurrency markets, analyze the data and provide a clear trading recommendation.
 
-    Input data (news article content):
-    {news_data}
+        Input data (news article content):
+        {news_data}
+
+        Your task:
+        - Carefully assess the qualitative information including market sentiment, whale activity, price levels, institutional behavior, and macro factors.
+        - Based on your assessment, give a clear recommendation of BUY, SELL, or HOLD.
+        - Also provide a concise justification for your recommendation, highlighting key points from the news.
+
+        Return the output strictly as a JSON object conforming to this Pydantic model schema:
+
+        {{
+            "recommendation": "<BUY|SELL|HOLD>",
+            "justification": "<concise explanation summarizing key reasons>"
+        }}
+
+        Ensure the JSON output is valid and directly parsable.
+
+        Begin your analysis now.
+    """)
+    prompt = prompt_template.format_prompt(news_data=news_data)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-pro", api_key=GEMINI_API_KEY, temperature=0)
+    output_parser = PydanticOutputParser(
+        pydantic_object=analysisModel)
+    prompt_text = prompt.to_string()
+
+    analysis_chain = llm | output_parser
+    result = analysis_chain.invoke(prompt_text)
+    print(result.model_dump())
+    return 200, result.model_dump()
+
+
+async def integrated_analysis(coin: str):
+    try:
+        quant_task = quantitative_analysis(coin)
+        quali_task = qualitative_analysis(coin)
+        status_results = await asyncio.gather(quant_task, quali_task)
+        
+        (status_quant, quant_recommendation), (status_quali, quali_recommendation) = status_results
+
+        if status_quant == 404 or status_quali == 404:
+            return 404, "Unable to find the requested coin."
+        
+    except Exception as e:
+        return 500, "Error during integrated analysis."
+    
+    prompt_template = ChatPromptTemplate.from_template("""
+    You are a senior financial analyst specialized in cryptocurrency markets. I will provide you with two inputs:
+    Quantitative analysis results (e.g., price trends, volume, volatility metrics, on-chain data)
+    Qualitative analysis results (e.g., market sentiment, regulatory news, technological updates, community feedback)
+
+    Input data:
+    Quantitative recommendation: {quant_recommendation}
+    Qualitative recommendation: {quali_recommendation}
 
     Your task:
-    - Carefully assess the qualitative information including market sentiment, whale activity, price levels, institutional behavior, and macro factors.
+    - Using your expertise, integrate both quantitative and qualitative insights carefully to produce a clear, well-reasoned recommendation on whether to buy, sell, or hold this cryptocurrency at this time. Please emphasize risks, market conditions, and potential catalysts in your final trading decision."                             
     - Based on your assessment, give a clear recommendation of BUY, SELL, or HOLD.
     - Also provide a concise justification for your recommendation, highlighting key points from the news.
 
@@ -136,7 +191,8 @@ async def qualitative_analysis(coin: str):
 
     Begin your analysis now.
     """)
-    prompt = prompt_template.format_prompt(news_data=news_data)
+    prompt = prompt_template.format_prompt(
+        quant_recommendation=quant_recommendation, quali_recommendation=quali_recommendation)
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro", api_key=GEMINI_API_KEY, temperature=0)
     output_parser = PydanticOutputParser(
@@ -147,4 +203,3 @@ async def qualitative_analysis(coin: str):
     result = analysis_chain.invoke(prompt_text)
     print(result.model_dump())
     return 200, result.model_dump()
-
