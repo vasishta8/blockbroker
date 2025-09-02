@@ -14,7 +14,6 @@ import asyncio
 load_dotenv()
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
-exchange = ccxt.binance()
 tavilyClient = TavilyClient(TAVILY_API_KEY)
 
 
@@ -25,6 +24,7 @@ class analysisModel(BaseModel):
 
 
 async def quantitative_analysis(coin: str):
+    exchange = await ccxt.binance()
     try:
         bars = await exchange.fetch_ohlcv(
             f'{coin}/USDT', timeframe='1d', limit=180)
@@ -102,6 +102,7 @@ async def quantitative_analysis(coin: str):
 
     analysis_chain = llm | output_parser
     result = await analysis_chain.ainvoke(prompt_text)
+    await exchange.close()
     print(result.model_dump())
     return 200, result.model_dump()
 

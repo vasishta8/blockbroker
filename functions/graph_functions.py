@@ -8,7 +8,6 @@ import pandas as pd
 from io import BytesIO
 
 load_dotenv()
-exchange = ccxt.binance()
 
 periods = {
     "24H": ("15m", 96),
@@ -21,6 +20,7 @@ periods = {
 
 async def graph_analysis(coin: str, period: str = "1M"):
     try:
+        exchange = await ccxt.binance()
         timeframe, limit = periods[period]
         if period == "YTD":
             start_of_year = pd.Timestamp.now().normalize().replace(month=1, day=1)
@@ -73,4 +73,5 @@ async def graph_analysis(coin: str, period: str = "1M"):
     buf.seek(0)
 
     dataframe_context = df.tail(10).to_markdown()
+    await exchange.close()
     return 200, {"context": dataframe_context, "dataframe": df}, buf
