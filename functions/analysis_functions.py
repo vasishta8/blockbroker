@@ -8,13 +8,17 @@ from pydantic import BaseModel, Field
 import os
 from dotenv import load_dotenv
 import yfinance as yf
+from tavily import TavilyClient
+import asyncio
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
 exchange = ccxt.binance()
+tavilyClient = TavilyClient(TAVILY_API_KEY)
 
 
-class quantitativeAnalysisModel(BaseModel):
+class analysisModel(BaseModel):
     recommendation: str = Field(..., description="One of BUY, SELL, or HOLD")
     justification: str = Field(...,
                                description="Concise explanation of the analysis")
@@ -93,16 +97,54 @@ async def quantitative_analysis(coin: str):
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro", api_key=GEMINI_API_KEY, temperature=0)
     output_parser = PydanticOutputParser(
-        pydantic_object=quantitativeAnalysisModel)
+        pydantic_object=analysisModel)
     prompt_text = prompt.to_string()
 
     analysis_chain = llm | output_parser
     result = analysis_chain.invoke(prompt_text)
-    print(result.dict())
-    return 200, result.dict()
+    print(result.model_dump())
+    return 200, result.model_dump()
 
 
 async def qualitative_analysis(coin: str):
-    news = yf.Search(f"{coin.upper()}-USD", news_count=10).news
+    try:
+        news = yf.Search(f"{coin.upper()}-USD", news_count=10).news
+    except Exception as e:
+        return 404, "Unable to find the requested coin"
+    news_urls = [news_item['link'] for news_item in news]
+    news_data = "\n".join([result["raw_content"]
+                          for result in tavilyClient.extract(news_urls)["results"]])
+    prompt_template = ChatPromptTemplate.from_template("""
+    You are a senior financial analyst specializing in cryptocurrency markets. Given the following qualitative news article content about cryptocurrency markets, analyze the data and provide a clear trading recommendation.
 
-    return
+    Input data (news article content):
+    {news_data}
+
+    Your task:
+    - Carefully assess the qualitative information including market sentiment, whale activity, price levels, institutional behavior, and macro factors.
+    - Based on your assessment, give a clear recommendation of BUY, SELL, or HOLD.
+    - Also provide a concise justification for your recommendation, highlighting key points from the news.
+
+    Return the output strictly as a JSON object conforming to this Pydantic model schema:
+
+    {{
+        "recommendation": "<BUY|SELL|HOLD>",
+        "justification": "<concise explanation summarizing key reasons>"
+    }}
+
+    Ensure the JSON output is valid and directly parsable.
+
+    Begin your analysis now.
+    """)
+    prompt = prompt_template.format_prompt(news_data=news_data)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-pro", api_key=GEMINI_API_KEY, temperature=0)
+    output_parser = PydanticOutputParser(
+        pydantic_object=analysisModel)
+    prompt_text = prompt.to_string()
+
+    analysis_chain = llm | output_parser
+    result = analysis_chain.invoke(prompt_text)
+    print(result.model_dump())
+    return 200, result.model_dump()
+

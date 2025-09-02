@@ -12,3 +12,4 @@ pydantic
 langchain-google-genai
 langchain
 yfinance
+tavily-python
