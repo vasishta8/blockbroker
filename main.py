@@ -2,7 +2,7 @@ import discord
 import os
 from dotenv import load_dotenv
 from commands import setup_commands
-from crypto_functions import *
+from functions.price_check_functions import *
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')

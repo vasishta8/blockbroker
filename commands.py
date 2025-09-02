@@ -1,5 +1,5 @@
 import discord
-from crypto_functions import *
+from functions.price_check_functions import *
 
 
 def setup_commands(tree: discord.app_commands.CommandTree, guild_id: int):
