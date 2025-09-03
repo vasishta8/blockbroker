@@ -3,8 +3,8 @@ from functions.graph_functions import *
 
 
 def setup_graph_commands(tree: discord.app_commands.CommandTree, guild_id: int):
-    @tree.command(name="graph", description="Shows the trends of the requested coin in a candlestick graph.", guild=discord.Object(guild_id))
-    async def candlestick(interaction: discord.Interaction, coin: str, period: str = "1M"):
+    @tree.command(name="candlestick_graph", description="Shows the trends of the requested coin in a candlestick graph.", guild=discord.Object(guild_id))
+    async def graph_command(interaction: discord.Interaction, coin: str, period: str = "1M"):
         await interaction.response.defer()
         coin = coin.upper()
         period = period.upper()
@@ -14,7 +14,7 @@ def setup_graph_commands(tree: discord.app_commands.CommandTree, guild_id: int):
             await interaction.followup.send(f"Invalid period. Choose one of: {', '.join(valid_periods)}")
             return
 
-        status, verdict, graph = await graph_analysis(coin, period)
+        status, verdict, graph = await create_candlestick_graph(coin, period)
 
         print(status, verdict)
         if (status == 200):

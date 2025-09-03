@@ -16,7 +16,7 @@ periods = {
 }
 
 
-async def graph_analysis(coin: str, period: str = "1M"):
+async def create_candlestick_graph(coin: str, period: str = "1M"):
     try:
         exchange = ccxt.binance()
         timeframe, limit = periods[period]
