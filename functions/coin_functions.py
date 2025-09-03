@@ -1,39 +1,41 @@
 import requests
 import os
 import json
+import asyncio
 from dotenv import load_dotenv
-import coinbase.wallet
-from coinbase.wallet.client import Client
+import ccxt.async_support as ccxt
 
 load_dotenv()
-COINBASE_API_KEY = os.getenv('COINBASE_API_KEY')
-COINBASE_API_SECRET = os.getenv('COINBASE_API_SECRET')
-client = Client(COINBASE_API_KEY, COINBASE_API_SECRET)
 
 
-def get_spot_price(coin: str, currency: str = 'USD'):
+async def get_last_price(coin: str, currency: str = 'USD'):
     try:
-        price = client.get_spot_price(currency_pair=f'{coin}-{currency}')
-        print(price)
-        return 200, price["amount"], price["base"], price["currency"]
-    except coinbase.wallet.error.NotFoundError as e:
-        return 404, -1, coin, currency
+        exchange = ccxt.binance()
+        ticker = await exchange.fetch_ticker(f'{coin.upper()}/USDT')
+        await exchange.close()
+        return 200, ticker['last']
+    except Exception as e:
+        await exchange.close()
+        return 404, ""
 
 
-def get_buy_price(coin: str, currency: str = 'USD'):
+async def get_bid_price(coin: str, currency: str = 'USD'):
     try:
-        price = client.get_buy_price(currency_pair=f'{coin}-{currency}')
-        print(price)
-        return 200, price["amount"], price["base"], price["currency"]
-    except coinbase.wallet.error.NotFoundError as e:
-        print(e)
-        return 404, -1, coin, currency
+        exchange = ccxt.binance()
+        ticker = await exchange.fetch_ticker(f'{coin.upper()}/USDT')
+        await exchange.close()
+        return 200, ticker['bid']
+    except Exception as e:
+        await exchange.close()
+        return 404, ""
 
 
-def get_sell_price(coin: str, currency: str = 'USD'):
+async def get_ask_price(coin: str, currency: str = 'USD'):
     try:
-        price = client.get_sell_price(currency_pair=f'{coin}-{currency}')
-        print(price)
-        return 200, price["amount"], price["base"], price["currency"]
-    except coinbase.wallet.error.NotFoundError as e:
-        return 404, -1, coin, currency
+        exchange = ccxt.binance()
+        ticker = await exchange.fetch_ticker(f'{coin.upper()}/USDT')
+        await exchange.close()
+        return 200, ticker['ask']
+    except Exception as e:
+        await exchange.close()
+        return 404, ""
