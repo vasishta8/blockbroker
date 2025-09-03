@@ -5,8 +5,6 @@ import asyncio
 from dotenv import load_dotenv
 import ccxt.async_support as ccxt
 
-load_dotenv()
-
 
 async def get_last_price(coin: str, currency: str = 'USD'):
     try:

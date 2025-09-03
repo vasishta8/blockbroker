@@ -7,8 +7,6 @@ import mplfinance as mpf
 import pandas as pd
 from io import BytesIO
 
-load_dotenv()
-
 periods = {
     "24H": ("15m", 96),
     "1M": ("1d", 30),
@@ -20,7 +18,7 @@ periods = {
 
 async def graph_analysis(coin: str, period: str = "1M"):
     try:
-        exchange = await ccxt.binance()
+        exchange = ccxt.binance()
         timeframe, limit = periods[period]
         if period == "YTD":
             start_of_year = pd.Timestamp.now().normalize().replace(month=1, day=1)
@@ -31,16 +29,17 @@ async def graph_analysis(coin: str, period: str = "1M"):
                 bars, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
             df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
         else:
-            bars = exchange.fetch_ohlcv(
+            bars = await exchange.fetch_ohlcv(
                 f'{coin}/USDT', timeframe=timeframe, limit=limit)
             df = pd.DataFrame(
                 bars, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
             df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
-
+        await exchange.close()
         df.set_index('Timestamp', inplace=True)
 
     except Exception as e:
-        return 404, "Unable to find the requested coin"
+        await exchange.close()
+        return 404, "Unable to find the requested coin", ""
 
     buf = BytesIO()
 
@@ -57,7 +56,7 @@ async def graph_analysis(coin: str, period: str = "1M"):
         figcolor="black"
     )
 
-    await mpf.plot(
+    mpf.plot(
         df,
         type="candle",
         style=dark_style,
@@ -73,5 +72,4 @@ async def graph_analysis(coin: str, period: str = "1M"):
     buf.seek(0)
 
     dataframe_context = df.tail(10).to_markdown()
-    await exchange.close()
     return 200, {"context": dataframe_context, "dataframe": df}, buf
