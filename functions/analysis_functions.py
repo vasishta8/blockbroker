@@ -24,7 +24,7 @@ class analysisModel(BaseModel):
 
 
 async def quantitative_analysis(coin: str):
-    exchange = await ccxt.binance()
+    exchange = ccxt.binance()
     try:
         bars = await exchange.fetch_ohlcv(
             f'{coin}/USDT', timeframe='1d', limit=180)
