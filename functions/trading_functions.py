@@ -1,17 +1,15 @@
-import pymongo
+import pymongo, os
+from dotenv import load_dotenv
 import ccxt.async_support as ccxt
 from cryptography.fernet import Fernet
 
-# In a real application, load this from a secure location (e.g., environment variable, secrets manager)
-# For demonstration, we'll use a fixed key.
-# You can generate a key using: Fernet.generate_key()
-
-ENCRYPTION_KEY = b'YOUR_GENERATED_ENCRYPTION_KEY_HERE='  
+load_dotenv()
+ENCRYPTION_KEY = os.getenv("FERNET_ENCRYPTION_KEY").encode() 
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
-tradingClient = pymongo.MongoClient("mongodb://localhost:27017/")
-tradingDb = tradingClient["tradingDatabase"]
-tradingTable = tradingDb["tradingTable"]
+mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
+user_database = mongo_client["user_data"] 
+api_keys_collection = user_database["binance_api_keys"]
 
 
 def encrypt(string: str) -> str:
@@ -22,34 +20,36 @@ def decrypt(encrypted_string: str) -> str:
     return cipher_suite.decrypt(encrypted_string.encode()).decode()
 
 
-async def set_binance_api_key(user_id: str, api_key: str):
+async def set_binance_api_keys(user_id: str, api_key: str, secret_key: str):
     encrypted_api_key = encrypt(api_key)
+    encrypted_secret_key = encrypt(secret_key)
 
-    tradingQuery = {"user_id": user_id}
-    newValues = {"$set": {"api_key": encrypted_api_key}}
+    user_id_query = {"user_id": user_id}
+    newValues = {"$set": {"api_key": encrypted_api_key, "secret_key": encrypted_secret_key}}
 
-    if tradingTable.find_one(tradingQuery):
-        tradingTable.update_one(tradingQuery, newValues)
+    if api_keys_collection.find_one(user_id_query):
+        api_keys_collection.update_one(user_id_query, newValues)
     else:
-        tradingTable.insert_one(
-            {"user_id": user_id, "api_key": encrypted_api_key})
+        api_keys_collection.insert_one(
+            {"user_id": user_id, "api_key": encrypted_api_key, "secret_key": encrypted_secret_key})
 
 
 async def create_market_buy_order(user_id: str, coin: str, amount: float):
-    tradingQuery = {"user_id": user_id}
-    user_doc = tradingTable.find_one(tradingQuery)
+    user_id_query = {"user_id": user_id}
+    user_doc = api_keys_collection.find_one(user_id_query)
 
     if not user_doc or "api_key" not in user_doc:
         return (404, "API Key not found")
 
     try:
         decrypted_api_key = decrypt(user_doc["api_key"])
+        decrypted_secret_key = decrypt(user_doc["secret_key"])
     except Exception as e:
-        return (500, f"Failed to decrypt API key: {e}")
+        return (500, f"Failed to decrypt keys: {e}")
 
     exchange = ccxt.binance({
         'apiKey': decrypted_api_key,
-        # 'secret': 'YOUR_SECRET_KEY' 
+        'secretKey': decrypted_secret_key 
     })
     try:
         order = await exchange.create_market_buy_order(f'{coin}/USDT', amount)
@@ -61,20 +61,21 @@ async def create_market_buy_order(user_id: str, coin: str, amount: float):
 
 
 async def create_limit_buy_order(user_id: str, coin: str, amount: float, price: float):
-    tradingQuery = {"user_id": user_id}
-    user_doc = tradingTable.find_one(tradingQuery)
+    user_id_query = {"user_id": user_id}
+    user_doc = api_keys_collection.find_one(user_id_query)
 
-    if not user_doc or "api_key" not in user_doc:
-        return (404, "API Key not found")
+    if not user_doc or "api_key" not in user_doc or "secret_key" not in user_doc:
+        return (404, "Key not found")
 
     try:
         decrypted_api_key = decrypt(user_doc["api_key"])
+        decrypted_secret_key = decrypt(user_doc["secret_key"])
     except Exception as e:
         return (500, f"Failed to decrypt API key: {e}")
 
     exchange = ccxt.binance({
         'apiKey': decrypted_api_key,
-        # 'secret': 'YOUR_SECRET_KEY'
+        'secretKey': decrypted_secret_key
     })
     try:
         order = await exchange.create_order(f'{coin}/USDT', 'limit', 'buy', amount, price)
