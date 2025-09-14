@@ -36,6 +36,10 @@ def setup_trading_commands(tree: discord.app_commands.CommandTree, guild_id: int
         await interaction.response.send_modal(modal)
 
     @tree.command(name="market_buy", description="Place a market buy order.", guild=discord.Object(guild_id))
+    @discord.app_commands.describe(
+        coin="The ticker symbol of the coin to buy (e.g., BTC, ETH).",
+        amount="The quantity of the coin to purchase, not the value in USDT."
+    )
     async def market_buy_command(interaction: discord.Interaction, coin: str, amount: float):
         """Command to place a market buy order."""
         user_id = str(interaction.user.id)
@@ -54,6 +58,11 @@ def setup_trading_commands(tree: discord.app_commands.CommandTree, guild_id: int
             await interaction.followup.send(f"Error: {result}", ephemeral=True)
 
     @tree.command(name="limit_buy", description="Place a limit buy order.", guild=discord.Object(guild_id))
+    @discord.app_commands.describe(
+        coin="The ticker symbol of the coin to buy (e.g., BTC, ETH).",
+        amount="The quantity of the coin to purchase, not the value in USDT.",
+        price="The price per coin in USDT at which to place the buy order."
+    )
     async def limit_buy_command(interaction: discord.Interaction, coin: str, amount: float, price: float):
         """Command to place a limit buy order."""
         user_id = str(interaction.user.id)
