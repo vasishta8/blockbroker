@@ -12,7 +12,7 @@ periods = {
     "1M": ("1d", 30),
     "3M": ("1d", 90),
     "1Y": ("1w", 52),
-    "YTD": ("1d", None)
+    "YTD": ("1d", None),
 }
 
 
@@ -24,18 +24,22 @@ async def create_candlestick_graph(coin: str, period: str = "1M"):
             start_of_year = pd.Timestamp.now().normalize().replace(month=1, day=1)
             since = int(start_of_year.timestamp() * 1000)
             bars = await exchange.fetch_ohlcv(
-                f'{coin}/USDT', timeframe='1d', since=since)
+                f"{coin}/USDT", timeframe="1d", since=since
+            )
             df = pd.DataFrame(
-                bars, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
+                bars, columns=["Timestamp", "Open", "High", "Low", "Close", "Volume"]
+            )
+            df["Timestamp"] = pd.to_datetime(df["Timestamp"], unit="ms")
         else:
             bars = await exchange.fetch_ohlcv(
-                f'{coin}/USDT', timeframe=timeframe, limit=limit)
+                f"{coin}/USDT", timeframe=timeframe, limit=limit
+            )
             df = pd.DataFrame(
-                bars, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
+                bars, columns=["Timestamp", "Open", "High", "Low", "Close", "Volume"]
+            )
+            df["Timestamp"] = pd.to_datetime(df["Timestamp"], unit="ms")
         await exchange.close()
-        df.set_index('Timestamp', inplace=True)
+        df.set_index("Timestamp", inplace=True)
 
     except Exception as e:
         await exchange.close()
@@ -44,16 +48,16 @@ async def create_candlestick_graph(coin: str, period: str = "1M"):
     buf = BytesIO()
 
     mc = mpf.make_marketcolors(
-        up='green', down='red',
-        edge='inherit', wick='white',
-        volume='in'
+        up="green", down="red", edge="inherit", wick="white", volume="in"
     )
     dark_style = mpf.make_mpf_style(
         base_mpl_style="dark_background",
         marketcolors=mc,
-        facecolor="black", edgecolor="white",
-        gridcolor="gray", gridstyle="--",
-        figcolor="black"
+        facecolor="black",
+        edgecolor="white",
+        gridcolor="gray",
+        gridstyle="--",
+        figcolor="black",
     )
 
     mpf.plot(
@@ -67,7 +71,7 @@ async def create_candlestick_graph(coin: str, period: str = "1M"):
         figratio=(14, 7),
         figscale=1.5,
         tight_layout=True,
-        savefig=dict(fname=buf, dpi=150, bbox_inches="tight")
+        savefig=dict(fname=buf, dpi=150, bbox_inches="tight"),
     )
     buf.seek(0)
 
